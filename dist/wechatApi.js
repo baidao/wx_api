@@ -47,8 +47,8 @@
         appid: data.appId || '',
         img_url: data.imgUrl,
         link: data.link,
-        desc: data.title,
-        title: data.desc
+        desc: data.desc,
+        title: data.title
       }, function(resp) {
         switch (resp.err_msg) {
           case 'share_timeline:cancel':
