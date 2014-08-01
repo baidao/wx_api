@@ -2,6 +2,7 @@
 > 微信js api
 
 # Usage
+> bower install YTX_WechatApi
 > browserify or requirejs or window.WechatApi ..
 
 ```
@@ -16,15 +17,15 @@ WechatApi.ready(function() {
 
   // 分享的回调
   var callbacks = {
-    // 分享操作开始之前
+    // 分享之前
     before: function() {
       alert("准备分享");
     },
-    // 分享被用户自动取消
+    // 用户取消分享
     cancel: function(resp) {
       alert("分享被取消");
     },
-    // 分享失败了
+    // 分享失败
     error: function(resp) {
       alert("分享失败");
     },
@@ -32,7 +33,7 @@ WechatApi.ready(function() {
     success: function(resp) {
       alert("分享成功");
     },
-    // 整个分享过程结束
+    // 分享结束
     always: function(resp) {
       alert("分享结束");
     }
