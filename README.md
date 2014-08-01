@@ -3,6 +3,7 @@
 
 # Usage
 > bower install YTX_WechatApi
+
 > browserify or requirejs or window.WechatApi ..
 
 ```
