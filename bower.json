@@ -1,0 +1,21 @@
+{
+  "name": "YTX_WechatApi",
+  "version": "0.0.1",
+  "homepage": "https://github.com/baidao/wx_api",
+  "description": "wechat api",
+  "keywords": [
+    "weixin"
+  ],
+  "dependencies": {
+  },
+  "license": "MIT",
+  "ignore": [
+    "node_modules",
+    "bower_components",
+    "package.json",
+    "scripts",
+    "gulpfile.coffee",
+    "gulpfile.js",
+    "test"
+  ]
+}
