@@ -114,7 +114,7 @@
   showOptionMenu = ->
     _WXJS.emit 'showOptionMenu'
 
-  # 显示菜单按钮
+  # 隐藏菜单按钮
   hideOptionMenu = ->
     _WXJS.emit 'hideOptionMenu'
 
