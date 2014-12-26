@@ -1,6 +1,7 @@
 {
   "name": "YTX_WechatApi",
   "version": "0.0.3",
+  "main": "./dist/wechatApi.js",
   "keywords": [
     "js",
     "weixin"
