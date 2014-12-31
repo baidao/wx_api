@@ -8,7 +8,7 @@
     return root.WechatApi = factory();
   }
 })(this, function() {
-  var closeWindow, getNetworkType, hideOptionMenu, hideToolbar, previewImage, ready, share, shareToEmail, shareToFriend, shareToTimeline, shareToWeibo, showOptionMenu, showToolbar, _WXJS, _defaults, _extend, _invokeCallbacks;
+  var hideOptionMenu, hideToolbar, previewImage, ready, shareToEmail, shareToFriend, shareToTimeline, shareToWeibo, showOptionMenu, showToolbar, _WXJS, _f2d;
   _WXJS = {
     on: function(namespace, callback) {
       var _ref;
@@ -28,51 +28,6 @@
       return (_ref = window.WeixinJSBridge) != null ? _ref.invoke(namespace, data, callback) : void 0;
     }
   };
-  _extend = function(obj) {
-    var prop, source, type, _i, _len;
-    type = typeof obj;
-    if (!(type === 'function' || type === 'object' && !!obj)) {
-      return obj;
-    }
-    for (_i = 0, _len = arguments.length; _i < _len; _i++) {
-      source = arguments[_i];
-      for (prop in source) {
-        obj[prop] = source[prop];
-      }
-    }
-    return obj;
-  };
-  _invokeCallbacks = function(resp, callbacks) {
-    var msg;
-    msg = resp.err_msg;
-    if (/:ok$/.test(msg)) {
-      if (typeof callbacks.success === "function") {
-        callbacks.success(resp);
-      }
-    } else if (/:confirm$/.test(msg)) {
-      if (typeof callbacks.success === "function") {
-        callbacks.success(resp);
-      }
-    } else if (/:cancel$/.test(msg)) {
-      if (typeof callbacks.cancel === "function") {
-        callbacks.cancel(resp);
-      }
-    } else if (/:fail$/.test(msg)) {
-      if (typeof callbacks.error === "function") {
-        callbacks.error(resp);
-      }
-    }
-    return typeof callbacks.always === "function" ? callbacks.always(resp) : void 0;
-  };
-  _defaults = {
-    link: window.top.location.href,
-    img_width: '256',
-    img_height: '256',
-    img_url: void 0,
-    appid: void 0,
-    title: void 0,
-    desc: void 0
-  };
   ready = function(callback) {
     if (typeof window.WeixinJSBridge === 'undefined') {
       return document.addEventListener('WeixinJSBridgeReady', callback, false);
@@ -80,61 +35,14 @@
       return callback();
     }
   };
-
-  /*
-    diff 用来不同分享类型 不同数据
-    这是个很蛋疼的需求
-    data =
-      friend: 好友
-      timeline: 朋友圈
-      weibo: 微博
-      email: email
-   */
-  share = function(data, callbacks, diff) {
-    if (diff == null) {
-      diff = false;
+  _f2d = function(data) {
+    var k, _i, _len, _ref;
+    _ref = ['appId', 'imgUrl', 'link', 'desc', 'title'];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      k = _ref[_i];
+      data[k] = typeof data[k] === 'function' ? data[k]() : data[k];
     }
-    return _WXJS.on('menu:general:share', function(argv) {
-      var shareTo, type;
-      if (typeof callbacks.before === "function") {
-        callbacks.before(argv);
-      }
-      shareTo = argv.shareTo;
-      type = void 0;
-      switch (shareTo) {
-        case 'friend':
-        case 'appmessage':
-        case 'sendappmessage':
-          type = 'sendAppMessage';
-          if (diff) {
-            data = data.friend;
-          }
-          break;
-        case 'timeline':
-          type = 'shareTimeline';
-          if (diff) {
-            data = data.timeline;
-          }
-          break;
-        case 'weibo':
-          type = 'shareWeibo';
-          if (diff) {
-            data = data.weibo;
-          }
-          break;
-        case 'email':
-          type = 'sendEmail';
-          if (diff) {
-            data = data.emial;
-          }
-      }
-      if (!type) {
-        return;
-      }
-      return _WXJS.emit(type, _extend({}, _defaults, data), function(resp) {
-        return _invokeCallbacks(resp, callbacks);
-      });
-    });
+    return data;
   };
   shareToTimeline = function(data, callbacks) {
     if (callbacks == null) {
@@ -144,8 +52,32 @@
       if (typeof callbacks.before === "function") {
         callbacks.before(argv);
       }
-      return _WXJS.emit('shareTimeline', _extend({}, _defaults, data), function(resp) {
-        return _invokeCallbacks(resp, callbacks);
+      data = _f2d(data);
+      return _WXJS.emit('shareTimeline', {
+        appid: data.appId || '',
+        img_url: data.imgUrl,
+        link: data.link,
+        desc: data.desc,
+        title: data.title
+      }, function(resp) {
+        switch (resp.err_msg) {
+          case 'share_timeline:cancel':
+            if (typeof callbacks.cancel === "function") {
+              callbacks.cancel(resp);
+            }
+            break;
+          case 'share_timeline:fail':
+            if (typeof callbacks.error === "function") {
+              callbacks.error(resp);
+            }
+            break;
+          case 'share_timeline:confirm':
+          case 'share_timeline:ok':
+            if (typeof callbacks.success === "function") {
+              callbacks.success(resp);
+            }
+        }
+        return typeof callbacks.always === "function" ? callbacks.always(resp) : void 0;
       });
     });
   };
@@ -157,8 +89,32 @@
       if (typeof callbacks.before === "function") {
         callbacks.before(argv);
       }
-      return _WXJS.emit('sendAppMessage', _extend({}, _defaults, data), function(resp) {
-        return _invokeCallbacks(resp, callbacks);
+      data = _f2d(data);
+      return _WXJS.emit('sendAppMessage', {
+        appid: data.appId || '',
+        img_url: data.imgUrl,
+        link: data.link,
+        desc: data.desc,
+        title: data.title
+      }, function(resp) {
+        switch (resp.err_msg) {
+          case 'send_app_msg:cancel':
+            if (typeof callbacks.cancel === "function") {
+              callbacks.cancel(resp);
+            }
+            break;
+          case 'send_app_msg:fail':
+            if (typeof callbacks.error === "function") {
+              callbacks.error(resp);
+            }
+            break;
+          case 'send_app_msg:confirm':
+          case 'send_app_msg:ok':
+            if (typeof callbacks.success === "function") {
+              callbacks.success(resp);
+            }
+        }
+        return typeof callbacks.always === "function" ? callbacks.always(resp) : void 0;
       });
     });
   };
@@ -167,8 +123,29 @@
       if (typeof callbacks.before === "function") {
         callbacks.before(argv);
       }
-      return _WXJS.on('shareWeibo', _extend({}, _defaults, data), function(resp) {
-        return _invokeCallbacks(resp, callbacks);
+      data = _f2d(data);
+      return _WXJS.emit('shareWeibo', {
+        content: data.desc,
+        url: data.link
+      }, function(resp) {
+        switch (resp.err_msg) {
+          case 'share_weibo:cancel':
+            if (typeof callbacks.cancel === "function") {
+              callbacks.cancel(resp);
+            }
+            break;
+          case 'share_weibo:fail':
+            if (typeof callbacks.error === "function") {
+              callbacks.error(resp);
+            }
+            break;
+          case 'share_weibo:confirm':
+          case 'share_weibo:ok':
+            if (typeof callbacks.success === "function") {
+              callbacks.success(resp);
+            }
+        }
+        return typeof callbacks.always === "function" ? callbacks.always(resp) : void 0;
       });
     });
   };
@@ -177,8 +154,30 @@
       if (typeof callbacks.before === "function") {
         callbacks.before(argv);
       }
-      return _WXJS.on('sendEmail', _extend({}, _defaults, data), function(resp) {
-        return _invokeCallbacks(resp, callbacks);
+      data = _f2d(data);
+      return _WXJS.emit('sendEmail', {
+        title_link: data.link,
+        content: data.desc,
+        title: data.title
+      }, function(resp) {
+        switch (resp.err_msg) {
+          case 'share_email:cancel':
+            if (typeof callbacks.cancel === "function") {
+              callbacks.cancel(resp);
+            }
+            break;
+          case 'share_email:fail':
+            if (typeof callbacks.error === "function") {
+              callbacks.error(resp);
+            }
+            break;
+          case 'share_email:confirm':
+          case 'share_email:ok':
+            if (typeof callbacks.success === "function") {
+              callbacks.success(resp);
+            }
+        }
+        return typeof callbacks.always === "function" ? callbacks.always(resp) : void 0;
       });
     });
   };
@@ -194,29 +193,18 @@
   hideToolbar = function() {
     return _WXJS.emit('hideToolbar');
   };
-  closeWindow = function() {
-    return _WXJS.emit('closeWindow');
-  };
-  getNetworkType = function(callback) {
-    return _WXJS.emit('getNetworkType', {}, function(resp) {
-      var type;
-      type = resp.err_msg;
-      return callback(type ? type.slice('network_type:'.length) : type);
-    });
-  };
   previewImage = function(current, urls) {
     if (!(current && urls && urls.length > 0)) {
       return;
     }
-    return _WXJS.emit('imagePreview', {
+    return WeixinJSBridge.invoke('imagePreview', {
       current: current,
       urls: urls
     });
   };
   return {
-    version: "0.0.3",
+    version: "0.0.1",
     ready: ready,
-    share: share,
     shareToTimeline: shareToTimeline,
     shareToFriend: shareToFriend,
     shareToWeibo: shareToWeibo,
@@ -225,8 +213,6 @@
     hideOptionMenu: hideOptionMenu,
     showToolbar: showToolbar,
     hideToolbar: hideToolbar,
-    closeWindow: closeWindow,
-    getNetworkType: getNetworkType,
     previewImage: previewImage
   };
 });

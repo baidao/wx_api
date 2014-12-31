@@ -8,40 +8,12 @@
   else
     root.WechatApi = factory()
 )(@, ->
+  # 微信JS
   _WXJS =
     on: (namespace, callback=->) ->
       window.WeixinJSBridge?.on namespace, callback
     emit: (namespace, data={}, callback=->) ->
       window.WeixinJSBridge?.invoke namespace, data, callback
-
-  _extend = (obj) ->
-    type = typeof obj
-    return obj unless (type is 'function' or type is 'object' and !!obj)
-    for source in arguments
-      for prop of source
-        obj[prop] = source[prop]
-    obj
-
-  _invokeCallbacks = (resp, callbacks) ->
-    msg = resp.err_msg
-    if /:ok$/.test msg
-      callbacks.success? resp
-    else if /:confirm$/.test msg
-      callbacks.success? resp
-    else if /:cancel$/.test msg
-      callbacks.cancel? resp
-    else if /:fail$/.test msg
-      callbacks.error? resp
-    callbacks.always? resp
-
-  _defaults =
-    link: window.top.location.href
-    img_width: '256'
-    img_height: '256'
-    img_url: undefined
-    appid: undefined
-    title: undefined
-    desc: undefined
 
   # WXJsBridge加载完成
   ready = (callback) ->
@@ -50,71 +22,117 @@
     else
       callback()
 
-  # 5.4 版本之后 通用share
-  ###
-    diff 用来不同分享类型 不同数据
-    这是个很蛋疼的需求
-    data =
-      friend: 好友
-      timeline: 朋友圈
-      weibo: 微博
-      email: email
-  ###
-  share = (data, callbacks, diff=false) ->
-    _WXJS.on 'menu:general:share', (argv) ->
-      callbacks.before? argv
-      shareTo = argv.shareTo
-      type = undefined
-      switch shareTo
-        when 'friend', 'appmessage', 'sendappmessage'
-          type = 'sendAppMessage'
-          data = data.friend if diff
-        when 'timeline'
-          type = 'shareTimeline'
-          data = data.timeline if diff
-        when 'weibo'
-          type = 'shareWeibo'
-          data = data.weibo if diff
-        when 'email'
-          type = 'sendEmail'
-          data = data.emial if diff
-      return unless type
-      _WXJS.emit type, _extend({}, _defaults, data), (resp) ->
-        _invokeCallbacks resp, callbacks
+  #函数转数据
+  _f2d = (data)->
+    for k in ['appId', 'imgUrl', 'link', 'desc', 'title']
+      data[k] = if typeof data[k] == 'function' then data[k]() else data[k]
+    return data
 
   # 分享到朋友圈
   shareToTimeline = (data, callbacks={}) ->
     _WXJS.on 'menu:share:timeline', (argv) ->
       callbacks.before? argv
-      _WXJS.emit 'shareTimeline', _extend({}, _defaults, data), (resp) ->
-        _invokeCallbacks resp, callbacks
+      data = _f2d data
+      # 分享
+      _WXJS.emit 'shareTimeline',
+        appid: data.appId or ''
+        img_url: data.imgUrl
+        link: data.link
+        desc: data.desc
+        title: data.title
+      , (resp) ->
+        switch resp.err_msg
+          # 用户取消
+          when 'share_timeline:cancel'
+            callbacks.cancel? resp
+          # 发送失败
+          when 'share_timeline:fail'
+            callbacks.error? resp
+          # 发送成功
+          when 'share_timeline:confirm', 'share_timeline:ok'
+            callbacks.success? resp
+        # 成功失败都执行
+        callbacks.always? resp
 
   # 分享给好友
   shareToFriend = (data, callbacks={}) ->
     _WXJS.on 'menu:share:appmessage', (argv) ->
       callbacks.before? argv
-      _WXJS.emit 'sendAppMessage', _extend({}, _defaults, data), (resp) ->
-        _invokeCallbacks resp, callbacks
+
+      data = _f2d data
+      # 分享
+      _WXJS.emit 'sendAppMessage',
+        appid: data.appId or ''
+        img_url: data.imgUrl
+        link: data.link
+        desc: data.desc
+        title: data.title
+      , (resp) ->
+        switch resp.err_msg
+          # 用户取消
+          when 'send_app_msg:cancel'
+            callbacks.cancel? resp
+          # 发送失败
+          when 'send_app_msg:fail'
+            callbacks.error? resp
+          # 发送成功
+          when 'send_app_msg:confirm', 'send_app_msg:ok'
+            callbacks.success? resp
+        # 成功失败都执行
+        callbacks.always? resp
 
   # 分享到腾讯微博
   shareToWeibo = (data, callbacks) ->
     _WXJS.on 'menu:share:weibo', (argv) ->
       callbacks.before? argv
-      _WXJS.on 'shareWeibo', _extend({}, _defaults, data), (resp) ->
-        _invokeCallbacks resp, callbacks
+      data = _f2d data
+      # 分享
+      _WXJS.emit 'shareWeibo',
+        content: data.desc
+        url: data.link
+      , (resp) ->
+        switch resp.err_msg
+          # 用户取消
+          when 'share_weibo:cancel'
+            callbacks.cancel? resp
+          # 发送失败
+          when 'share_weibo:fail'
+            callbacks.error? resp
+          # 发送成功
+          when 'share_weibo:confirm', 'share_weibo:ok'
+            callbacks.success? resp
+        # 成功失败都执行
+        callbacks.always? resp
 
   # 分享到邮件
   shareToEmail = (data, callbacks) ->
     _WXJS.on 'menu:share:email', (argv) ->
       callbacks.before? argv
-      _WXJS.on 'sendEmail', _extend({}, _defaults, data), (resp) ->
-        _invokeCallbacks resp, callbacks
+      data = _f2d data
+      # 分享
+      _WXJS.emit 'sendEmail',
+        title_link: data.link
+        content: data.desc
+        title: data.title
+      , (resp) ->
+        switch resp.err_msg
+          # 用户取消
+          when 'share_email:cancel'
+            callbacks.cancel? resp
+          # 发送失败
+          when 'share_email:fail'
+            callbacks.error? resp
+          # 发送成功
+          when 'share_email:confirm', 'share_email:ok'
+            callbacks.success? resp
+        # 成功失败都执行
+        callbacks.always? resp
 
   # 显示菜单按钮
   showOptionMenu = ->
     _WXJS.emit 'showOptionMenu'
 
-  # 隐藏菜单按钮
+  # 显示菜单按钮
   hideOptionMenu = ->
     _WXJS.emit 'hideOptionMenu'
 
@@ -126,28 +144,31 @@
   hideToolbar = ->
     _WXJS.emit 'hideToolbar'
 
-  # 关闭当前窗口
-  closeWindow = ->
-    _WXJS.emit 'closeWindow'
-
-  # 当前网络
-  getNetworkType = (callback) ->
-    _WXJS.emit 'getNetworkType', {}, (resp) ->
-      type = resp.err_msg
-      # wifi: wifi, edge:edge, wwan:2G/3G, fail:网络断开
-      callback if type then type['network_type:'.length...] else type
-
   # 微信Native的图片播放组件
   previewImage = (current, urls) ->
     return unless (current and urls and urls.length > 0)
-    _WXJS.emit 'imagePreview',
+    WeixinJSBridge.invoke 'imagePreview',
       current: current
       urls: urls
 
+  # #设置字体大小
+  # setFontSize = (size) ->
+  #   fontSize = '100%'
+  #   switch size
+  #     when 1 then fontSize = '80%'
+  #     when 2 then fontSize = '100%'
+  #     when 3 then fontSize = '120%'
+  #     when 4 then fontSize = '140%'
+  #     when 5 then fontSize = '200%'
+  #   WeixinJSBridge.invoke 'setFontSizeCallback',
+  #     fontSize: fontSize
+  #   , (resp) ->
+  #     alert resp.err_msg
+
+
   # WechatApi
-  version: "0.0.3"
+  version: "0.0.1"
   ready: ready
-  share: share
   shareToTimeline: shareToTimeline
   shareToFriend: shareToFriend
   shareToWeibo: shareToWeibo
@@ -156,7 +177,6 @@
   hideOptionMenu: hideOptionMenu
   showToolbar: showToolbar
   hideToolbar: hideToolbar
-  closeWindow: closeWindow
-  getNetworkType: getNetworkType
   previewImage: previewImage
+  # setFontSize: setFontSize # android
 )
